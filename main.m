@@ -2,6 +2,14 @@ clearvars
 clc
 close all
 
-%1.Cargar Datos
+%Cargar Datos desde el csv
 
-eric q guapo eres
+aeropuerto = "LEBL.csv"
+data = readtable(aeropuerto);
+
+% disp("Primeras 8 filas:")   //Test
+% disp(head(data,8))
+
+
+
+
