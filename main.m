@@ -10,8 +10,7 @@ data = readtable(aeropuerto);
 %Guarda solo la segunda hoja del excel(llegadas)
 llegadas = readtable(aeropuerto,'Sheet','LLEGADAS');
 horas_vuelos = llegadas.ETA *24;  
-% disp("Primeras 8 filas:")   //Test
-% disp(head(data,8))
+
 
 AAR = 40;
 PAAR = 20;
@@ -36,3 +35,7 @@ ylim([0, AAR + 10]);
 
 hold off;
 exportgraphics(gcf, 'Histograma_Arribades.png', 'Resolution', 300);
+
+
+
+[HNoReg, delay] = calcular_regulacion(llegadas.ETA, Hstart, Hend, PAAR, AAR);
