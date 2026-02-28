@@ -22,7 +22,7 @@ Hend = 14;
 %Gráfico demanda-capacidad
 figure;
 histogram(horas_vuelos, 0:24, 'FaceColor', [0.2 0.2 0.6]); 
-hold on; % Congelem el gràfic per dibuixar a sobre
+hold on; 
 
 plot([0, Hstart], [AAR, AAR], 'g', 'LineWidth', 2);
 plot([Hstart, Hend], [PAAR, PAAR], 'r', 'LineWidth', 2);
@@ -35,3 +35,4 @@ xlim([0, 24]);
 ylim([0, AAR + 10]);
 
 hold off;
+exportgraphics(gcf, 'Histograma_Arribades.png', 'Resolution', 300);
