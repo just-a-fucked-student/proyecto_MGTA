@@ -10,8 +10,8 @@ aeropuerto = "LEBL_10AUG2025.xlsx";
 llegadas = readtable(aeropuerto, 'Sheet', 'LLEGADAS');
 
 %% 2) Preparar horas de llegada para histograma
-% ETA está en fracción de día (double): 0.5 = 12:00
-horas_vuelos = mod(llegadas.ETA * 24, 24);   % horas [0..24)
+% ETA está en fracción de día 
+horas_vuelos = mod(llegadas.ETA * 24, 24);  
 
 %% 3) Parámetros de capacidad y regulación
 AAR  = 40;   % capacidad nominal (arrivals/hour)
@@ -59,3 +59,9 @@ exportgraphics(gcf, 'Histograma_Arribades_2periodos.png', 'Resolution', 300);
 fprintf('HNoReg = %.2f UTC hours\n', HNoReg);
 fprintf('Total minimum delay = %.2f (minutes * aircraft)\n', delay);
 
+slots = compute_slots(Hstart1, Hend1, Hstart2, Hend2, HNoReg, PAAR, AAR);
+
+% Ver primeras filas
+disp(slots(1:10,:))
+
+writematrix(slots, 'slots_WP1.csv');
