@@ -1,67 +1,58 @@
-%% MAIN.M (WP1) - LEBL 10AUG2025
 clearvars
 clc
 close all
 
-%% 1) Cargar datos desde el Excel
+%% Cargar Datos desde el xlsx
 aeropuerto = "LEBL_10AUG2025.xlsx";
 
-% Leer hoja de llegadas
-llegadas = readtable(aeropuerto, 'Sheet', 'LLEGADAS');
+% Guarda todos los datos (lee la primera hoja)
+data = readtable(aeropuerto);
 
-%% 2) Preparar horas de llegada para histograma
-% ETA está en fracción de día 
-horas_vuelos = mod(llegadas.ETA * 24, 24);  
+% Guarda solo la segunda hoja del excel (llegadas)
+llegadas = readtable(aeropuerto,'Sheet','LLEGADAS');
 
-%% 3) Parámetros de capacidad y regulación
-AAR  = 40;   % capacidad nominal (arrivals/hour)
-PAAR = 20;   % capacidad reducida (arrivals/hour)
+% Pasar ETA a horas (está en fracción de día)
+horas_vuelos = llegadas.ETA * 24;  
 
-% Periodo reducido 1: 08:00 - 14:00
-Hstart1 = 8;
-Hend1   = 14;
+%% Parámetros
+AAR = 40;      % capacidad nominal (arrivals/hour)
+PAAR = 20;     % capacidad reducida
+Hfile = 6;     % hora publicación regulación (aún no usado en WP1)
+Hstart = 8;    % inicio reducción
+Hend = 14;     % fin reducción
 
-% Periodo reducido 2: 16:00 - 20:00
-Hstart2 = 16;
-Hend2   = 20;
-
-%% 4) Gráfico: histograma de demanda + líneas de capacidad (2 periodos)
+%% Gráfico demanda-capacidad
 figure;
+histogram(horas_vuelos, 0:24, 'FaceColor', [0.2 0.2 0.6]); 
+hold on; 
 
-% Histograma de llegadas por hora
-histogram(horas_vuelos, 0:24, 'FaceColor', [0.2 0.2 0.6]);
-hold on;
+plot([0, Hstart], [AAR, AAR], 'g', 'LineWidth', 2);
+plot([Hstart, Hend], [PAAR, PAAR], 'r', 'LineWidth', 2);
+plot([Hend, 24], [AAR, AAR], 'g', 'LineWidth', 2);
 
-% Líneas de capacidad (AAR verde, PAAR rojo) en 2 tramos reducidos
-plot([0, Hstart1],   [AAR, AAR],   'g', 'LineWidth', 2);   % AAR
-plot([Hstart1, Hend1],[PAAR, PAAR],'r', 'LineWidth', 2);   % PAAR
-plot([Hend1, Hstart2],[AAR, AAR],  'g', 'LineWidth', 2);   % AAR
-plot([Hstart2, Hend2],[PAAR, PAAR],'r', 'LineWidth', 2);   % PAAR
-plot([Hend2, 24],    [AAR, AAR],   'g', 'LineWidth', 2);   % AAR
-
-title('Histogram of arrivals and capacity (two reduced periods)');
+title('Histogram of arrivals on non-regulated traffic');
 xlabel('Time in UTC (hours)');
 ylabel('Arrivals (number of aircraft)');
-xlim([0, 24]);
+xlim([0, 24]);          
 ylim([0, AAR + 10]);
 grid on;
 
 hold off;
 
-exportgraphics(gcf, 'Histograma_Arribades_2periodos.png', 'Resolution', 300);
+exportgraphics(gcf, 'Histograma_Arribades.png', 'Resolution', 300);
 
-%% 5) WP1 - Calcular HNoReg y delay mínimo total (2 ventanas)
-% Llamada a la función común (debe existir como calcular_regulacion.m)
-[HNoReg, delay] = calcular_regulacion(llegadas.ETA, ...
-    Hstart1, Hend1, Hstart2, Hend2, PAAR, AAR);
+%% Calcular regulación (WP1)
+[HNoReg, delay] = calcular_regulacion(llegadas.ETA, Hstart, Hend, PAAR, AAR);
 
-% Mostrar resultados
 fprintf('HNoReg = %.2f UTC hours\n', HNoReg);
 fprintf('Total minimum delay = %.2f (minutes * aircraft)\n', delay);
 
-slots = compute_slots(Hstart1, Hend1, Hstart2, Hend2, HNoReg, PAAR, AAR);
+%% Crear slots (WP1)
+slots = compute_slots(Hstart, Hend, HNoReg, PAAR, AAR);
 
-% Ver primeras filas
+% Mostrar primeras filas para comprobar
+disp('Primeros 10 slots:')
 disp(slots(1:10,:))
 
+% Guardar slots por si se necesitan después
 writematrix(slots, 'slots_WP1.csv');

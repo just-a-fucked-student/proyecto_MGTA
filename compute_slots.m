@@ -1,34 +1,36 @@
-function slots = compute_slots(Hstart1, Hend1, Hstart2, Hend2, HNoReg, PAAR, AAR)
-% Crea la matriz de slots desde Hstart1 hasta HNoReg (en minutos)
+function slots = compute_slots(Hstart, Hend, HNoReg, PAAR, AAR)
+% compute_slots (WP1)
+% Crea la matriz de slots desde Hstart hasta HNoReg (en minutos).
 % Cada fila: [inicio_slot_min, idVuelo, airline]
-% idVuelo y airline empiezan en 0.
+% Al principio idVuelo y airline son 0.
 
-    start1 = round(Hstart1*60);  end1 = round(Hend1*60);
-    start2 = round(Hstart2*60);  end2 = round(Hend2*60);
-    endReg = round(HNoReg*60);
+    % Pasar horas a minutos
+    startMin = round(Hstart * 60);
+    endRedMin = round(Hend * 60);
+    endRegMin = round(HNoReg * 60);
 
-    % Tamaños de slot (minutos por llegada)
-    slotA = 60 / AAR;
-    slotP = 60 / PAAR;
+    % Tamaño de slot (minutos por llegada)
+    slotReduced = 60 / PAAR;   % dentro de la ventana reducida
+    slotNominal = 60 / AAR;    % fuera de la ventana reducida
 
-    % Empezamos en el inicio de regulación
-    current = start1;
+    % Inicializar
+    current = startMin;
+    slots = [];
 
-    slots = [];  % iremos añadiendo filas
+    % Crear slots hasta HNoReg
+    while current <= endRegMin
 
-    while current <= endReg
-        % Decidir si estamos en periodo reducido o no
-        if (current >= start1 && current <= end1) || (current >= start2 && current <= end2)
-            slotSize = slotP;
+        % Si estamos en periodo reducido -> slotReduced, si no -> slotNominal
+        if current <= endRedMin
+            slotSize = slotReduced;
         else
-            slotSize = slotA;
+            slotSize = slotNominal;
         end
 
-        % Añadir slot: [inicio, 0, 0]
-        slots = [slots; round(current), 0, 0];
+        % Añadir una fila (3 columnas)
+        slots = [slots; round(current), 0, 0]; %#ok<AGROW>
 
         % Avanzar al siguiente slot
-        current = round(current + slotSize); 
-        % slots en minutos enteros
+        current = round(current + slotSize);
     end
 end

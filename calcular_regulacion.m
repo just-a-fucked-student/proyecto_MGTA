@@ -1,70 +1,76 @@
-function [HNoReg, totalDelay] = calcular_regulacion(ETA, Hstart1, Hend1, Hstart2, Hend2, PAAR, AAR)
-% WP1 - Version sencilla y correcta: acumulamos desde el inicio de regulacion (Hstart1)
-
-    % 1) ETA a minutos del día
-    ETA_min = round(mod(ETA * 24 * 60, 1440));   % 0..1440
-
-    % 2) Pasar horas a minutos
-    start1 = round(Hstart1*60);  end1 = round(Hend1*60);
-    start2 = round(Hstart2*60);  end2 = round(Hend2*60);
-
-    % 3) Tiempo de análisis: desde start1 hasta fin del día
-    t = (start1:1440)';                 % minutos
-    nT = length(t);
-
-    % 4) DEMANDA por minuto (solo contamos llegadas desde start1 en adelante)
-    arrivalsPerMin = zeros(nT,1);
-    for i = 1:length(ETA_min)
-        m = ETA_min(i);
-        if m >= start1 && m <= 1440
-            idx = (m - start1) + 1;     % convertir minuto real a índice de vector t
-            arrivalsPerMin(idx) = arrivalsPerMin(idx) + 1;
-        end
+function [HNoReg, delay] = calcular_regulacion(ETA, Hstart, Hend, PAAR, AAR)
+    %Funcion para calcular la hora de final de regulacion y hacer el
+    %grafico de aggregate demand
+    if max(ETA) <= 1
+        ETA_hores = ETA * 24; 
+    else
+        ETA_hores = ETA; 
     end
-
-    % 5) CAPACIDAD por minuto (desde start1)
-    capPerMin = zeros(nT,1);
-    for k = 1:nT
-        minutoReal = t(k);
-
-        if (minutoReal >= start1 && minutoReal <= end1) || (minutoReal >= start2 && minutoReal <= end2)
-            capPerMin(k) = PAAR/60;
+    minutos_dia = (0:1440)';
+    
+    % DEMANDA AGREGADA
+    vols_per_minut = histcounts(ETA_hores * 60, [minutos_dia', 1442]);
+    AggregateDemand = [minutos_dia, cumsum(vols_per_minut)'];
+    
+    %Cálculo de capacidades nominal y reducida
+    Cap_Red = zeros(1441, 1); 
+    Cap_Nom = zeros(1441, 1);
+    Cap_Red(1) = AggregateDemand(1, 2); 
+    Cap_Nom(1) = AggregateDemand(1, 2);
+    
+    for i = 2:1441
+        t = minutos_dia(i) / 60;
+        r_nom = AAR / 60;
+        Cap_Nom(i) = min(Cap_Nom(i-1) + r_nom, AggregateDemand(i, 2));
+        
+        if t >= Hstart && t < Hend
+            r_red = PAAR / 60; 
         else
-            capPerMin(k) = AAR/60;
+            r_red = AAR / 60; 
         end
+        Cap_Red(i) = min(Cap_Red(i-1) + r_red, AggregateDemand(i, 2));
     end
-
-    % 6) Acumuladas (como piden las slides)
-    DemandCum   = cumsum(arrivalsPerMin);
-    CapacityCum = cumsum(capPerMin);
-
-    % 7) Cola / backlog y delay mínimo total
-    Backlog = DemandCum - CapacityCum;
-    Backlog(Backlog < 0) = 0;
-
-    totalDelay = sum(Backlog);
-
-    % 8) HNoReg = primer minuto despues del final de la 2ª ventana donde backlog = 0
-    HNoReg = NaN;
-    for minutoReal = (end2+1):1440
-        k = (minutoReal - start1) + 1;
-        if k >= 1 && k <= nT && Backlog(k) == 0
-            HNoReg = minutoReal/60;
-            break
-        end
+    
+    % Cálculo Delay y HNoReg
+    delay = sum(AggregateDemand(:, 2) - Cap_Red);
+    idx_recuperacion = find(minutos_dia/60 >= Hend & Cap_Red >= AggregateDemand(:, 2), 1);
+    if isempty(idx_recuperacion)
+        HNoReg = 24; 
+    else
+        HNoReg = minutos_dia(idx_recuperacion)/60; 
     end
-    if isnan(HNoReg)
-        HNoReg = 24;
-    end
-
-    % 9) Plot de verificación
-    figure;
-    plot(t/60, DemandCum, 'LineWidth', 2); hold on;
-    plot(t/60, CapacityCum, 'LineWidth', 2);
+    %Cálculo average delay
+    total_vuelos = AggregateDemand(end, 2);
+    average_delay = delay / total_vuelos;
+    
+    %Plot
+    figure; 
+    hold on; 
     grid on;
-    xlabel('Time (UTC hours)');
-    ylabel('Cumulative arrivals (from Hstart1)');
-    legend('Aggregate Demand','Aggregate Capacity','Location','best');
-    title('WP1 - Aggregate demand vs capacity (from start of regulation)');
+    
+    p_dem = plot(minutos_dia/60, AggregateDemand(:, 2), 'k', 'LineWidth', 2.5);
+     
+    idx_start = find(minutos_dia/60 >= Hstart, 1);
+    p_nom = plot(minutos_dia(idx_start:end)/60, Cap_Nom(idx_start:end), 'k--', 'LineWidth', 1.5);
+    
+    idx_end = find(minutos_dia/60 >= Hend, 1);
+    idx_noreg = find(minutos_dia/60 >= HNoReg, 1);
+    
+    p_red_restr = plot(minutos_dia(idx_start:idx_end)/60, Cap_Red(idx_start:idx_end), 'k:', 'LineWidth', 2.5);
+    
+    if ~isempty(idx_noreg) && idx_noreg > idx_end
+        p_red_recov = plot(minutos_dia(idx_end:idx_noreg)/60, Cap_Red(idx_end:idx_noreg), 'k--', 'LineWidth', 2);
+    end
+    
 
+    uistack(p_dem, 'top');
+    title('Aggregate demand'); xlabel('Time in UTC (hour)'); ylabel('demand (Number of aircraft)');
+    xlim([2 24]);
+    legend([p_dem, p_red_restr, p_nom], {'Aggregate demand', 'Capacity reduced', 'Capacity nominal'}, 'Location', 'northwest');
+    
+    fprintf('HNoReg: %.2f h | Total Delay: %.2f min\n', HNoReg, delay);
+    fprintf('Average Delay per Flight: %.2f min\n', average_delay);
+
+    exportgraphics(gcf, 'Aggregate demand.png', 'Resolution', 300);
+    
 end
