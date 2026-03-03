@@ -17,9 +17,9 @@ horas_vuelos = llegadas.ETA * 24;
 %% Parámetros
 AAR = 40;      % capacidad nominal (arrivals/hour)
 PAAR = 20;     % capacidad reducida
-Hfile = 6;     % hora publicación regulación (aún no usado en WP1)
-Hstart = 8;    % inicio reducción
-Hend = 14;     % fin reducción
+Hfile = 4;     % hora publicación regulación
+Hstart = 6;    % inicio reducción
+Hend = 13;     % fin reducción
 
 %% Gráfico demanda-capacidad
 figure;
@@ -44,15 +44,12 @@ exportgraphics(gcf, 'Histograma_Arribades.png', 'Resolution', 300);
 %% Calcular regulación (WP1)
 [HNoReg, delay] = calcular_regulacion(llegadas.ETA, Hstart, Hend, PAAR, AAR);
 
-fprintf('HNoReg = %.2f UTC hours\n', HNoReg);
-fprintf('Total minimum delay = %.2f (minutes * aircraft)\n', delay);
-
 %% Crear slots (WP1)
 slots = compute_slots(Hstart, Hend, HNoReg, PAAR, AAR);
 
 % Mostrar primeras filas para comprobar
-disp('Primeros 10 slots:')
-disp(slots(1:10,:))
+disp('Slots 200 a 202')
+disp(slots(200:202,:))
 
 % Guardar slots por si se necesitan después
 writematrix(slots, 'slots_WP1.csv');

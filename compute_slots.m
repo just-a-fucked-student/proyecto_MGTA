@@ -28,9 +28,9 @@ function slots = compute_slots(Hstart, Hend, HNoReg, PAAR, AAR)
         end
 
         % Añadir una fila (3 columnas)
-        slots = [slots; round(current), 0, 0]; %#ok<AGROW>
+        slots = [slots; (current), 0, 0]; %#ok<AGROW>
 
         % Avanzar al siguiente slot
-        current = round(current + slotSize);
+        current = (current + slotSize);
     end
 end
