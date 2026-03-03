@@ -71,6 +71,6 @@ function [HNoReg, delay] = calcular_regulacion(ETA, Hstart, Hend, PAAR, AAR)
     fprintf('HNoReg: %.2f h | Total Delay: %.2f min\n', HNoReg, delay);
     fprintf('Average Delay per Flight: %.2f min\n', average_delay);
 
-    exportgraphics(gcf, 'Aggregate demand.png', 'Resolution', 300);
+    
     
 end

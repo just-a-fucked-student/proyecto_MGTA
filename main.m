@@ -39,7 +39,7 @@ grid on;
 
 hold off;
 
-exportgraphics(gcf, 'Histograma_Arribades.png', 'Resolution', 300);
+
 
 %% Calcular regulación (WP1)
 [HNoReg, delay] = calcular_regulacion(llegadas.ETA, Hstart, Hend, PAAR, AAR);
