@@ -56,7 +56,7 @@ disp(slots(200:202,:))
 writematrix(slots, 'slots_WP1.csv');
 
 
-%---------------------------- GDP
+%% GDP
 ARCID = llegadas.ARCID;
 ETA_hours = llegadas.ETA * 24; 
 ETD_hours = llegadas.ETD * 24; 
