@@ -20,6 +20,7 @@ PAAR = 20;     % capacidad reducida
 Hfile = 4;     % hora publicación regulación
 Hstart = 6;    % inicio reducción
 Hend = 13;     % fin reducción
+radius = 1500; 
 
 %% Gráfico demanda-capacidad
 figure;
@@ -53,3 +54,20 @@ disp(slots(200:202,:))
 
 % Guardar slots por si se necesitan después
 writematrix(slots, 'slots_WP1.csv');
+
+
+%---------------------------- GDP
+ARCID = llegadas.ARCID;
+ETA_hours = llegadas.ETA * 24; 
+ETD_hours = llegadas.ETD * 24; 
+Distances = llegadas.Flight_Distance_km_; 
+Column_ECAC = llegadas.ECAC;
+[NotAffected, ExemptRadius, ExemptInternational, ExemptFlying, Exempt, Controlled] = compute_list(ARCID, ETA_hours, ETD_hours, Distances, Column_ECAC, Hfile, Hstart, HNoReg, radius);
+fprintf('Total flights in Excel: %d\n', length(ETA_hours));
+fprintf('Flights NOT affected (because schedule): %d\n', length(NotAffected));
+fprintf('Flights EXEMPTS (Total): %d\n', length(Exempt));
+fprintf('Exempts beacuse radius (>%d KM): %d\n', radius, length(ExemptRadius));
+fprintf('Exempts because already flying: %d\n', length(ExemptFlying));
+fprintf('Exempts because being NO ECAC: %d\n', length(ExemptInternational));
+fprintf('Flights CONTROLLED (GDP): %d\n', length(Controlled));
+
