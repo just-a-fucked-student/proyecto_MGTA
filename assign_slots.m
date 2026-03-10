@@ -3,7 +3,6 @@ ETA_min = (ETA_hours*60); %Convert ETA a minutes
 ETD_min = (ETD_hours*60);
 
 change_day = ETD_min > ETA_min;
-ETA_min(change_day) = ETA_min(change_day)+1440; %if the flight arrives the next day we add 24h to it
 
 slots_cell = num2cell(slots(:, 1:2));
 

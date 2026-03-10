@@ -21,7 +21,7 @@ function slots = compute_slots(Hstart, Hend, HNoReg, PAAR, AAR)
     while current <= endRegMin
 
         % Si estamos en periodo reducido -> slotReduced, si no -> slotNominal
-        if current <= endRedMin
+        if current < endRedMin
             slotSize = slotReduced;
         else
             slotSize = slotNominal;
