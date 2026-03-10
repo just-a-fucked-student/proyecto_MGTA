@@ -1,7 +1,7 @@
 function CTA_hours = compute_CTA(ARCID, ETA_hours, GroundDelay, AirDelay)
     
     %First the CTA=ETA
-    CTA_min = round(ETA_hours * 60);
+    CTA_min = (ETA_hours * 60);
     
     all_delays = [GroundDelay; AirDelay];
     
