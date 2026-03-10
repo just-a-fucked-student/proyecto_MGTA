@@ -72,8 +72,11 @@ fprintf('Exempts because being NO ECAC: %d\n', length(ExemptInternational));
 fprintf('Flights CONTROLLED (GDP): %d\n', length(Controlled));
 
 %Asign the slots and dealys
-[final_slots, GroundDelay, AirDealy] = assign_slots(slots, Controlled, Exempt, ETA_hours, ETD_hours, ARCID);
+[final_slots, GroundDelay, AirDelay] = assign_slots(slots, Controlled, Exempt, ETA_hours, ETD_hours, ARCID);
 disp('(Min | ID)');
 disp(final_slots(200:205, :));
 disp('Ground delay');
 disp(GroundDelay(1:5, :));
+
+%CTA
+CTA_hours = compute_CTA(ARCID, ETA_hours, GroundDelay, AirDelay);
