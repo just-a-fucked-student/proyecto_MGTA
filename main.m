@@ -80,3 +80,21 @@ disp(GroundDelay(1:5, :));
 
 %CTA
 CTA_hours = compute_CTA(ARCID, ETA_hours, GroundDelay, AirDelay);
+
+%% Grafico horas reguladas
+figure;
+histogram(CTA_hours, 0:24, 'FaceColor', [0.2 0.2 0.6]); 
+hold on; 
+
+plot([0, Hstart], [AAR, AAR], 'g', 'LineWidth', 2);
+plot([Hstart, Hend], [PAAR, PAAR], 'r', 'LineWidth', 2);
+plot([Hend, 24], [AAR, AAR], 'g', 'LineWidth', 2);
+
+title('Histogram of arrivals on regulated traffic');
+xlabel('Time in UTC (hours)');
+ylabel('Arrivals (number of aircraft)');
+xlim([0, 24]);          
+ylim([0, AAR + 10]);
+grid on;
+
+hold off;
