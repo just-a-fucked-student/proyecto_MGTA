@@ -98,3 +98,12 @@ ylim([0, AAR + 10]);
 grid on;
 
 hold off;
+
+
+%% Calculate Unrecoverable Delay
+[UnrecoverableDelay, total_unrecoverable] = compute_unrecoverable_delay(GroundDelay, ETD_hours, ETA_hours, ARCID, Hstart);
+
+fprintf('\n--- UNRECOVERABLE DELAY ---\n');
+fprintf('Total Unrecoverable Delay: %.2f minuts\n', total_unrecoverable);
+disp('Show the first 5 flights with no recoverable delay:');
+disp(UnrecoverableDelay(1:5, :));
