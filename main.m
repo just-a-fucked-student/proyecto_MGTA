@@ -71,7 +71,7 @@ fprintf('Exempts because already flying: %d\n', length(ExemptFlying));
 fprintf('Exempts because being NO ECAC: %d\n', length(ExemptInternational));
 fprintf('Flights CONTROLLED (GDP): %d\n', length(Controlled));
 
-%Asign the slots and dealys
+%Asign the slots and delays
 [final_slots, GroundDelay, AirDelay] = assign_slots(slots, Controlled, Exempt, ETA_hours, ETD_hours, ARCID);
 disp('(Min | ID)');
 disp(final_slots(200:205, :));
@@ -105,5 +105,13 @@ hold off;
 
 fprintf('\n--- UNRECOVERABLE DELAY ---\n');
 fprintf('Total Unrecoverable Delay: %.2f minuts\n', total_unrecoverable);
-disp('Show the first 5 flights with no recoverable delay:');
+disp('Show the first 5 flights with unrecoverable delay:');
 disp(UnrecoverableDelay(1:5, :));
+
+%% Emissions per Air Delay (WP2)
+[AirEmissions, total_CO2_air_delay] = compute_air_emissions(AirDelay, llegadas, ARCID);
+
+fprintf('\n--- EMISSIONS CO2 (AIR DELAY) ---\n');
+fprintf('Total CO2 of Air Delay: %.2f kg\n', total_CO2_air_delay);
+disp('Show the first 5 flights (kg CO2 | ID):');
+disp(AirEmissions(1:5, :));
