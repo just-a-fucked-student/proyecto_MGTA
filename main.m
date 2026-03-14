@@ -115,3 +115,7 @@ fprintf('\n--- EMISSIONS CO2 (AIR DELAY) ---\n');
 fprintf('Total CO2 of Air Delay: %.2f kg\n', total_CO2_air_delay);
 disp('Show the first 5 flights (kg CO2 | ID):');
 disp(AirEmissions(1:5, :));
+
+%% KPIs
+num_total_flights = length(ARCID);
+compute_kpis(AirDelay, GroundDelay, num_total_flights, total_CO2_air_delay);
