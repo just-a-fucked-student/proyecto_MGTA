@@ -80,3 +80,4 @@ function compute_kpis(AirDelay, GroundDelay, num_total_flights, total_CO2_air)
     fprintf('CO2 emissions: %.2f kg extra allowed\n', total_co2);
     fprintf('(Air CO2: %.2f kg | Ground CO2: %.2f kg)\n', total_CO2_air, total_CO2_ground);
 end
+
