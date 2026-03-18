@@ -119,3 +119,5 @@ disp(AirEmissions(1:5, :));
 %% KPIs
 num_total_flights = length(ARCID);
 compute_kpis(AirDelay, GroundDelay, num_total_flights, total_CO2_air_delay);
+
+%% Compute the heatmaps and the varying parameters. 
