@@ -13,7 +13,7 @@ PAAR   = 20;
 Hfile  = 4;
 Hstart = 6;
 Hend   = 13;
-radius = 1500;
+radius = 1200;
 
 %% Grafico demanda-capacidad
 figure;

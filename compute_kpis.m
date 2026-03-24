@@ -39,12 +39,12 @@ function compute_kpis(AirDelay, GroundDelay, num_total_flights, total_CO2_air)
     if isempty(air_afectados)
         max_air = 0; 
     else
-        max_air = max(air_afectados)
+        max_air = max(air_afectados);
     end
     if isempty(ground_afectados)
         max_ground = 0
     else
-        max_ground = max(ground_afectados)
+        max_ground = max(ground_afectados);
     end
 
     % 5. Relative standard deviation
