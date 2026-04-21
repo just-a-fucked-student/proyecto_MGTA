@@ -27,7 +27,7 @@ function [AirEmissions, total_CO2_air_delay] = compute_air_emissions(AirDelay, l
                     seat_count = 150; 
                 end
                 
-                %Calculate flight time and speed
+                % Calculate flight time and speed
                 eta_f = ETA_hours(idx);
                 etd_f = ETD_hours(idx);
                 
@@ -46,21 +46,21 @@ function [AirEmissions, total_CO2_air_delay] = compute_air_emissions(AirDelay, l
                 velocity_km_h = dist / flight_time_hours;
                 km_per_min = velocity_km_h / 60;
                 
-                %Call the emissions model (Returns GRAMS per ASK)
+                % Call the emissions model (Returns GRAMS per ASK)
                 try
                     fuel_ask_grams = emissions_fuel_model.compute_fuel_ask(dist, seat_count);
                 catch
                     fuel_ask_grams = 16.0; % Fallback to typical ~16 grams/ASK
                 end
                 
-                %Convert grams to kg and calculate CO2
+                % Convert grams to kg and calculate CO2
                 fuel_ask_kg = fuel_ask_grams / 1000;
                 co2_ask = fuel_ask_kg * 3.16;
                 
                 co2_per_km = co2_ask * seat_count;
                 co2_per_min = co2_per_km * km_per_min;
                 
-                %Multiply CO2 per min by the air delay
+                % Multiply CO2 per min by the air delay
                 flight_air_co2 = co2_per_min * delay_min;
                 
 
