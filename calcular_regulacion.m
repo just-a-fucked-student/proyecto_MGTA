@@ -64,7 +64,7 @@ function [HNoReg, delay] = calcular_regulacion(ETA, Hstart, Hend, PAAR, AAR)
     
 
     uistack(p_dem, 'top');
-    title('Aggregate demand'); xlabel('Time in UTC (hour)'); ylabel('demand (Number of aircraft)');
+    title('Aggregate demand'); xlabel('Time in UTC (hour)'); ylabel('Demand (Number of aircraft)');
     xlim([2 24]);
     legend([p_dem, p_red_restr, p_nom], {'Aggregate demand', 'Capacity reduced', 'Capacity nominal'}, 'Location', 'northwest');
     

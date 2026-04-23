@@ -25,7 +25,7 @@ plot([Hend, 24],   [AAR, AAR],  'g', 'LineWidth', 2);
 title('Histogram of arrivals on non-regulated traffic');
 xlabel('Time in UTC (hours)');
 ylabel('Arrivals (number of aircraft)');
-xlim([0, 24]); ylim([0, AAR + 10]);
+xlim([0, 24]); ylim([0, AAR + 5]);
 grid on; hold off;
 
 %% Calcular regulacion (WP1)
@@ -71,7 +71,7 @@ plot([Hend, 24],     [AAR, AAR],   'g', 'LineWidth', 2);
 title('Histogram of arrivals on regulated traffic');
 xlabel('Time in UTC (hours)');
 ylabel('Arrivals (number of aircraft)');
-xlim([0, 24]); ylim([0, AAR + 10]);
+xlim([0, 24]); ylim([0, AAR + 5]);
 grid on; hold off;
 
 %% Unrecoverable Delay
