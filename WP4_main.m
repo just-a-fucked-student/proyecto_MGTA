@@ -45,10 +45,10 @@ fprintf('Flights remaining for the GDP: %d\n\n', height(llegadas));
 % Extraer ETA de la tabla FILTRADA
 horas_vuelos = llegadas.ETA * 24;
 
-% Create a table with ONLY the substituted flights
+% Crear tabla con los vuelos eliminados
 removed_flights = llegadas_original(flights_to_remove, :);
 
-% Define D2D overheads in hours based on the slides
+% Definir tiempo adicional basado en las diapositivas
 additional_air = 150 / 60;   
 additional_rail = 60 / 60;   
 
@@ -120,8 +120,7 @@ fprintf('Average Rail D2D time: %.2f hours\n\n', total_rail_D2D_hours / height(r
 
 
 
-%% --- CALCULAR GDP ORIGINAL EN SILENCI (Per al Gràfic 2) ---
-% Necessitem el GroundDelay del WP2 per a l'Escenari 2
+%% --- CALCULAR GDP ORIGINAL EN SILENCI ---
 slots_orig = compute_slots(Hstart, Hend, HNoReg, PAAR, AAR);
 [~, ~, ~, ~, Exempt_orig, Controlled_orig] = compute_list(llegadas_original.ARCID, ETA_original_hours, ...
     (llegadas_original.ETD*24), llegadas_original.Flight_Distance_km_, llegadas_original.ECAC, ...
@@ -184,7 +183,7 @@ for i = 1:length(airports_to_remove)
     delay_gco2_ask = (avg_delay_mins * 2.5 * 1000) / (150 * dist);
     
     routes_air_gCO2(end+1) = base_gco2_ask;
-    routes_air_gCO2_delay(end+1) = base_gco2_ask + delay_gco2_ask; % <-- DADA CORREGIDA PER A L'ESCENARI 2
+    routes_air_gCO2_delay(end+1) = base_gco2_ask + delay_gco2_ask; 
     routes_rail_gCO2(end+1) = (co2_pax * 1000) / dist;
     
     % 5. Càlcul D2D en s/km
@@ -196,77 +195,75 @@ for i = 1:length(airports_to_remove)
     routes_dist(end+1) = dist;
 end
 
-% Ordenar per distància per connectar les línies de forma coherent
+% Ordenar per distància per connectar les línies
 [sorted_dist, s_idx] = sort(routes_dist);
 air_gCO2 = routes_air_gCO2(s_idx); 
-air_gCO2_delay = routes_air_gCO2_delay(s_idx); % <- Emissions amb retard
+air_gCO2_delay = routes_air_gCO2_delay(s_idx); 
 rail_gCO2 = routes_rail_gCO2(s_idx);
 air_skm_no = routes_air_skm_nodelay(s_idx); 
 air_skm_yes = routes_air_skm_delay(s_idx);
 rail_skm = routes_rail_skm(s_idx); 
 names = valid_airports(s_idx);
 
-%% --- DIBUIXAR ELS GRÀFICS ---
-color_emis = [0.000 0.447 0.741]; % Blau
-color_time = [0.850 0.325 0.098]; % Taronja
+%% --- DIBUIXAR EL GRÀFIC COMBINAT---
+color_air = [0.000 0.447 0.741];     % Blau (Avió Baseline)
+color_air_d = [0.850 0.325 0.098];   % Vermell (Avió amb Retard)
+color_rail = [0.466 0.674 0.188];    % Verd (Tren)
 
-% Fixem l'eix esquerre a 250 perquè les línies tinguin la forma original
+
 max_left_y = 250; 
-
-
 max_right_y = max([max(air_skm_no), max(air_skm_yes), max(rail_skm)]) * 1.05;
 
-% --- GRÀFIC 1: SENSE RETARD (Baseline) ---
-figure('Name', 'No Delay', 'Color', 'w', 'Position', [100, 100, 700, 500]);
-title('No Delay', 'FontWeight', 'bold', 'FontSize', 12);
+
+figure('Name', 'Intermodality Comparison', 'Color', 'w', 'Position', [100, 100, 900, 550]);
+title('Intermodality Comparison: Flight vs Rail (Baseline & Regulated)', 'FontWeight', 'bold', 'FontSize', 12);
 grid on; hold on;
 
-% Eix Esquerre (Emissions)
+% --- Eix Esquerre (Emissions - Línies Contínues) ---
 yyaxis left
-p1 = plot(sorted_dist, air_gCO2, '-o', 'Color', color_emis, 'LineWidth', 1.5, 'MarkerFaceColor', 'w');
-p2 = plot(sorted_dist, rail_gCO2, '--o', 'Color', color_emis, 'LineWidth', 1.5, 'MarkerFaceColor', 'w');
-ylabel('gCO_2/ASK', 'Color', color_emis, 'FontWeight', 'bold');
-set(gca, 'ycolor', color_emis); ylim([0 max_left_y]);
+p1 = plot(sorted_dist, air_gCO2, '-o', 'Color', color_air, 'LineWidth', 1.5, 'MarkerFaceColor', 'w');
+p2 = plot(sorted_dist, air_gCO2_delay, '-s', 'Color', color_air_d, 'LineWidth', 1.5, 'MarkerFaceColor', 'w');
+p3 = plot(sorted_dist, rail_gCO2, '-d', 'Color', color_rail, 'LineWidth', 1.5, 'MarkerFaceColor', 'w');
 
+
+ylabel('gCO_2/ASK (Solid Lines)', 'Color', 'k', 'FontWeight', 'bold');
+set(gca, 'ycolor', 'k'); ylim([0 max_left_y]);
+
+% Línies verticals i noms de ciutats
 for i = 1:length(sorted_dist)
     xline(sorted_dist(i), ':', 'Color', [0.8 0.8 0.8]);
     text(sorted_dist(i), max_left_y*0.98, names{i}, 'Rotation', 90, 'HorizontalAlignment', 'right', 'FontSize', 9, 'Color', [0.5 0.5 0.5]);
 end
 
-% Eix Dret (Temps D2D)
+% --- Eix Dret (Temps D2D - Línies Discontínues) ---
 yyaxis right
-p3 = plot(sorted_dist, air_skm_no, '-x', 'Color', color_time, 'LineWidth', 1.5);
-p4 = plot(sorted_dist, rail_skm, '--x', 'Color', color_time, 'LineWidth', 1.5);
-ylabel('D2D Time (s/km)', 'Color', color_time, 'FontWeight', 'bold');
-set(gca, 'ycolor', color_time); ylim([0 max_right_y]);
+p4 = plot(sorted_dist, air_skm_no, '--o', 'Color', color_air, 'LineWidth', 1.5, 'MarkerSize', 6);
+p5 = plot(sorted_dist, air_skm_yes, '--s', 'Color', color_air_d, 'LineWidth', 1.5, 'MarkerSize', 6);
+p6 = plot(sorted_dist, rail_skm, '--d', 'Color', color_rail, 'LineWidth', 1.5, 'MarkerSize', 6);
+
+ylabel('D2D Time s/km (Dashed Lines)', 'Color', 'k', 'FontWeight', 'bold');
+set(gca, 'ycolor', 'k'); ylim([0 max_right_y]); 
 xlabel('Distance (km)', 'FontWeight', 'bold');
 
-legend([p1, p2, p3, p4], {'Flight Emissions', 'Rail Emissions', 'Flight Time', 'Rail Time'}, 'Location', 'northeast');
+
+legend([p1, p4, p2, p5, p3, p6], ...
+    {'Air Baseline Emissions', 'Air Baseline Time', ...
+     'Air Regulated Emissions', 'Air Regulated Time', ...
+     'Rail Emissions', 'Rail Time'}, ...
+    'Location', 'northoutside', 'FontSize', 9, 'NumColumns', 3);
 
 
-% --- GRÀFIC 2: AMB RETARD (Regulated) ---
-figure('Name', 'With GDP Delay (Regulated)', 'Color', 'w', 'Position', [820, 100, 700, 500]);
-title('With GDP Delay (Regulated)', 'FontWeight', 'bold', 'FontSize', 12);
-grid on; hold on;
 
-% Eix Esquerre (Emissions AMB RETARD)
-yyaxis left
-p5 = plot(sorted_dist, air_gCO2_delay, '-o', 'Color', color_emis, 'LineWidth', 1.5, 'MarkerFaceColor', 'w');
-p6 = plot(sorted_dist, rail_gCO2, '--o', 'Color', color_emis, 'LineWidth', 1.5, 'MarkerFaceColor', 'w');
-ylabel('gCO_2/ASK', 'Color', color_emis, 'FontWeight', 'bold');
-set(gca, 'ycolor', color_emis); ylim([0 max_left_y]);
 
-for i = 1:length(sorted_dist)
-    xline(sorted_dist(i), ':', 'Color', [0.8 0.8 0.8]);
-    text(sorted_dist(i), max_left_y*0.98, names{i}, 'Rotation', 90, 'HorizontalAlignment', 'right', 'FontSize', 9, 'Color', [0.5 0.5 0.5]);
-end
 
-% Eix Dret (Temps D2D AMB RETARD)
-yyaxis right
-p7 = plot(sorted_dist, air_skm_yes, '-x', 'Color', color_time, 'LineWidth', 1.5);
-p8 = plot(sorted_dist, rail_skm, '--x', 'Color', color_time, 'LineWidth', 1.5);
-ylabel('D2D Time (s/km)', 'Color', color_time, 'FontWeight', 'bold');
-set(gca, 'ycolor', color_time); ylim([0 max_right_y]); 
-xlabel('Distance (km)', 'FontWeight', 'bold');
+%% --- CÀLCUL DE LA NOVA HNoReg (ESCENARI INTERMODAL) ---
+% Apliquem directament la teva funció de WP2 als vols filtrats (sense trens)
+[new_HNoReg_val, ~] = calcular_regulacion(horas_vuelos, Hstart, Hend, PAAR, AAR);
 
-legend([p5, p6, p7, p8], {'Flight Emissions', 'Rail Emissions', 'Flight Time', 'Rail Time'}, 'Location', 'northeast');
+new_H = floor(new_HNoReg_val);
+new_M = round((new_HNoReg_val - new_H) * 60);
+
+fprintf('--- RESULTATS DE CONGESTIÓ (NOVA HNoReg) ---\n');
+fprintf('Antiga HNoReg (Original): %.2fh\n', HNoReg);
+fprintf('Nova HNoReg (Amb trens):  %02d:%02d (%.2fh)\n', new_H, new_M, new_HNoReg_val);
+fprintf('Temps de congestió estalviat: %.2f hores\n\n', HNoReg - new_HNoReg_val);
