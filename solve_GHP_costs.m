@@ -148,6 +148,5 @@ intx = 1:dec_var;
 
 [x,coste_minimo] = intlinprog(c,intx,Aineq,bineq,Aeq,beq,lb,ub);
 
-%funciona?
 end
     
