@@ -63,7 +63,10 @@ function compute_kpis(AirDelay, GroundDelay, num_total_flights, total_CO2_air)
     all_delays = [air_delays; ground_delays];
     num_delayed_flights = sum(all_delays>0);
     otp_number = sum(all_delays > 0 & all_delays < 15);
-    
+    otp_number2 = sum(all_delays > 0 & all_delays < 120);
+
+    porcentaje_otp_15 = (otp_number / num_total_flights) * 100;
+    porcentaje_otp_120 = (otp_number2 / num_total_flights) * 100;
 
     % 7. CO2 ground emission
     co2_ground_per_min = 2 * 3.16; 
@@ -71,7 +74,8 @@ function compute_kpis(AirDelay, GroundDelay, num_total_flights, total_CO2_air)
     total_co2 = total_CO2_air + total_CO2_ground;
 
     fprintf('Delayed flights: %d flights had suffered delay\n', num_delayed_flights);
-    fprintf('OTP (< 15 min): %d flights\n', otp_number);
+    fprintf('OTP (< 15 min): %d flights (%.2f%%)\n', otp_number, porcentaje_otp_15);
+    fprintf('OTP (< 120 min): %d flights (%.2f%%)\n', otp_number2, porcentaje_otp_120);
     fprintf('Total delay: %.2f min (Air: %.2f | Ground: %.2f)\n', total_delay, total_air, total_ground);
     fprintf('Mean Delay: %.2f min/flight \n', mean_overall);
     fprintf('Mean Air: %.2f min | Mean Ground: %.2f min\n', mean_air, mean_ground);
