@@ -4,9 +4,7 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
     ETA_hours = tabla.ETA;
     ETD_hours = tabla.ETD;
     Seats = tabla.Seats;
-    Distancia = tabla.Flight_Distance_km_;
     RM = tabla.RM;
-    ECAC = tabla.ECAC;
 
     N = length(vuelos_opt); % Number of flights to assign
     tiempo_slots = slots(:, 1);
@@ -37,8 +35,6 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
     ETA_opt   = zeros(N,1);
     ETD_opt   = zeros(N,1);
     Seats_opt = zeros(N,1);
-    Dist_opt  = zeros(N,1);
-    ECAC_opt  = cell(N,1);
     RM_opt    = cell(N,1);
 
     for i = 1:N
@@ -46,8 +42,6 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
         ETA_opt(i) = ETA_hours(idx);
         ETD_opt(i) = ETD_hours(idx);
         Seats_opt(i) = Seats(idx);
-        Dist_opt(i) = Distancia(idx);
-        ECAC_opt{i} = ECAC{idx};
         RM_opt{i} = RM{idx};
 
     end
@@ -72,29 +66,9 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
         is_exempt = any(strcmp(Exempt, vuelos_opt{i}));
         ETA   = ETA_opt(i)*1440;
         seats = Seats_opt(i);
-        dist  = Dist_opt(i);
         rm    = RM_opt{i};
         
         pax = 0.85 * seats; %Load factor recommended by eurocontrol
-        % Connecting passengers (22% at BCN in Aena Statistics)
-        pct_connect = 0.22;
-        pax_connect = pax * pct_connect;
-
-        %Compensation per passsenger (EU261)
-        if dist <= 1500
-            base = 250;
-        elseif dist <= 3500
-            base = 400;
-        else
-            base = 600;
-        end
-        %MCT (minimum connecting time)
-        %Domestic flight <1500 km, International >1500km
-        if dist <=1500
-            mct = 45;
-        else
-            mct = 60;
-        end
 
         % Turnaround multiplier using same aircraft RM
         same_aircraft = strcmp(RM,rm);
@@ -106,7 +80,6 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
         if has_rotation
             turnaround = min(future_dep) - ETA;   % minutes available
         end
-
         %% SLOT LOOP
         for j = 1:M
             delay = tiempo_slots(j) - ETA;
@@ -147,21 +120,30 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
                     frac = min(delay/turnaround, 1.0); %proportion of the time of the turnaround that the delay takes
                     react_mult = 1.0 + frac * (1.97 - 1.0);
                 end
-                op_cost = op_cost * react_mult;
-
-                %Lost connection cost, delay > mct
-                connection_cost = 0;
-                if delay > mct
-                    connection_cost = pax_connect * base;
-                end 
-                c(counter) = op_cost + connection_cost;    
+                c(counter) = op_cost*react_mult;  
             end
             counter = counter + 1;
         end
-        %% Solve the optimization
-        intx = 1:dec_var;
-        [x,coste_minimo] = intlinprog(c,intx,Aineq,bineq,Aeq,beq,lb,ub);
     end
+    %% Solve the optimization
+    intx = 1:dec_var;
+    [x,coste_minimo] = intlinprog(c,intx,Aineq,bineq,Aeq,beq,lb,ub);
+    
+    %comprobacion del delay
+    delay_total = 0;
+        for i = 1:N
+            for j = 1:M
+                idx_x = (i-1)*M + j;
+                if x(idx_x) <= length(x) && x(idx_x) > 0.5
+                    ETA_min  = ETA_opt(i) * 1440;
+                    slot_min = tiempo_slots(j);
+                    delay_ij = max(0, slot_min - ETA_min);
+                    delay_total = delay_total + delay_ij;
+                end
+            end
+        end
+fprintf('\nDelay total GHP costs: %.1f min\n', delay_total);
+end
     
 
     
