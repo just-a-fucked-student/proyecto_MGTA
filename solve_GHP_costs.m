@@ -52,6 +52,18 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
 
     end
 
+    %% Basic reactionary multipliers by delay magnitude(Table 19 Tanner and Cook)
+    cook_delay_min  = [0, 5, 15, 30, 60, 90, 120, 180, 240, 300];
+    cook_react_mult = [1.0, 1.52, 1.70, 1.97, 2.51, 3.05, 3.60, 4.68, 5.77, 6.85];
+    
+    %% Valores promedio B738 y A320
+    cook_delay = [5, 15, 30, 60, 90, 120, 180, 240, 300];
+    % AT-GATE / BASE / primary tactical costs (Table 22 Tanner and Cook)
+    cook_cost_ground = [95, 470, 1400, 4750, 9400, 15070, 29480, 47795, 69790];
+
+    % EN-ROUTE / BASE / primary tactical costs (Table 24 Tanner and Cook)
+    cook_cost_airborne = [270, 995, 2490, 6865, 12565, 19310, 35840, 56275, 80390];
+    
     %% Cost Vector
     c = zeros(dec_var, 1); % Cost vector
     counter = 1;
@@ -61,13 +73,13 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
         ETA   = ETA_opt(i)*1440;
         seats = Seats_opt(i);
         dist  = Dist_opt(i);
-        ecac  = ECAC_opt{i};
         rm    = RM_opt{i};
         
         pax = 0.85 * seats; %Load factor recommended by eurocontrol
         % Connecting passengers (22% at BCN in Aena Statistics)
         pct_connect = 0.22;
         pax_connect = pax * pct_connect;
+
         %Compensation per passsenger (EU261)
         if dist <= 1500
             base = 250;
@@ -76,77 +88,80 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
         else
             base = 600;
         end
-        
-        %Ecac Condition, since non-ECAC has a bigger operational cost per
-        %minute and more impact in the connections
-        if strcmpi(strtrim(ecac), 'NO ECAC')
-            ecac_mult = 1.25;  % non-ECAC more expensive
+        %MCT (minimum connecting time)
+        %Domestic flight <1500 km, International >1500km
+        if dist <=1500
+            mct = 45;
         else
-            ecac_mult = 1.0;
-        end
-        
-        %Threshold to set the lost conection
-        connect_threshold = 50; %for BCN domestic flights is 20min while for international is 60min, we set an intermediate value(near to the international one because that are more complexes) since we don't know which flight are the passengers going to take
-        
-        %Operational cost depending on type of delay
-        if is_exempt
-            cost_per_min = 82.95; %airborne
-        else 
-            cost_per_min = 17.78; %ground at gate
+            mct = 60;
         end
 
-    % Turnaround multiplier using same aircraft RM
-    turn_mult = 1.0;
-    same_aircraft = strcmp(RM,rm);
-
-    future_dep = ETD_hours(same_aircraft)*1440; %ETD in minutes
-    future_dep = future_dep(future_dep > ETA); %Only departures afetr arriving
-
-    if ~isempty(future_dep)
-        next_dep = min(future_dep); %next departure of that flight
-        turnaround = next_dep - ETA; %time availavble for turnaround
-
-        if turnaround < 75
-            turn_mult = 2.0; %very tight turnaround
-        elseif turnaround < 120
-            turn_mult = 1.5; %moderate turnaround
+        % Turnaround multiplier using same aircraft RM
+        same_aircraft = strcmp(RM,rm);
+        future_dep = ETD_hours(same_aircraft)*1440; %ETD in minutes
+        future_dep = future_dep(future_dep > ETA); %Only departures afetr arriving
+    
+        has_rotation = ~isempty(future_dep);
+        turnaround = Inf;
+        if has_rotation
+            turnaround = min(future_dep) - ETA;   % minutes available
         end
-    end
 
-    %% SLOT LOOP
-    for j = 1:M
-        delay = tiempo_slots(j) - ETA;
-        % Slot before ETA -> infeasible
-        if tiempo_slots(j) < ETA
-            ub(counter) = 0;
-            c(counter)  = 0;
+        %% SLOT LOOP
+        for j = 1:M
+            delay = tiempo_slots(j) - ETA;
+            % Slot before ETA -> infeasible
+            if tiempo_slots(j) < ETA
+                ub(counter) = 0;
+                c(counter)  = 1e6;
+    
+            % Exempt flights max air delay
+            elseif is_exempt && delay > max_air_delay
+                ub(counter) = 0;
+                c(counter)  = 1e6;
 
-        % Exempt flights max air delay
-        elseif is_exempt && delay > max_air_delay
-            ub(counter) = 0;
-            c(counter)  = 0;
-        else
-            ub(counter) = 1;
-            %Operational cost: €/min * delay * ECAC multiplier
-            op_cost = cost_per_min * ecac_mult;
-            % Connection loss cost
-            if delay > connect_threshold %if the delay is bigger than the theshold of the connection lost
-                rf = op_cost * turn_mult+ (pax_connect * base) / delay;
+            %If there is no delay there is no cost    
+            elseif delay == 0
+                c(counter) = 0;
             else
-                rf = op_cost * turn_mult;
+                delay_clamped = max(5, min(delay,300));
+                if is_exempt %Airbone delay
+                    op_cost = interp1(cook_delay, cook_cost_airborne, delay_clamped, 'pchip');
+                else 
+                    op_cost = interp1(cook_delay, cook_cost_ground, delay_clamped, 'pchip');
+                end
+                % We take as reference a standard flight with 128 pax
+                % (narrowbody with LF of 0.85)
+                pax_ref = 128;
+                factor = pax / pax_ref;
+                op_cost = op_cost * factor;
+
+                %reactionary multiplier
+                react_mult = 1.0;
+                if has_rotation && delay > turnaround %more delay tham turnaround: reactionary
+                    react_mult = interp1(cook_delay_min, cook_react_mult, delay_clamped, 'pchip', 'extrap');
+                    react_mult = max(1.0, react_mult);
+                elseif has_rotation && delay > 0 %Delay inside the turnaround, partial propagation
+                    %We take 1.97 as point since is the first point where
+                    %propagation grows exponentially.
+                    frac = min(delay/turnaround, 1.0); %proportion of the time of the turnaround that the delay takes
+                    react_mult = 1.0 + frac * (1.97 - 1.0);
+                end
+                op_cost = op_cost * react_mult;
+
+                %Lost connection cost, delay > mct
+                connection_cost = 0;
+                if delay > mct
+                    connection_cost = pax_connect * base;
+                end 
+                c(counter) = op_cost + connection_cost;    
             end
-            %Total cost coefficient for the flight
-            c(counter) = rf * delay;
+            counter = counter + 1;
         end
-        counter = counter + 1;
+        %% Solve the optimization
+        intx = 1:dec_var;
+        [x,coste_minimo] = intlinprog(c,intx,Aineq,bineq,Aeq,beq,lb,ub);
     end
-end
+    
 
-%% Solve the optimization
-
-intx = 1:dec_var;
-
-[x,coste_minimo] = intlinprog(c,intx,Aineq,bineq,Aeq,beq,lb,ub);
-
-end
     

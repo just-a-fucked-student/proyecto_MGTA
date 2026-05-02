@@ -37,7 +37,7 @@ Excel = readtable('LEBL_10AUG2025.xlsx');
 % Resultados globales
 fprintf('The total minimum delay found is: %.2f mins\n', coste_minimo);
 fprintf('The total minimum CO2 cost found is: %.2f kg CO2\n', coste_emisiones);
-fprintf('Optimal cost found: %.2f €\n', coste_delay);
+fprintf('Minimum delay cost found is: %.2f €\n', coste_delay);
 
 % Task 4: KPIs detallados
 compute_kpis_GHP(x,    vuelos_opt, slots, ARCID, ETA_hours, llegadas, Exempt, 'Task1 - Unitary Cost', GroundDelay, AirDelay);
