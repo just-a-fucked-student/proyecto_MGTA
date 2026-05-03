@@ -1,4 +1,4 @@
-function [x, coste_minimo] = solve_GHP(vuelos_opt, slots, ARCID, ETA_hours, Exempt, max_air_delay)
+function [x, coste_minimo] = solve_GHP(vuelos_opt, slots, ARCID, ETA_hours, Exempt, max_air_delay, max_ground_delay)
     % max_air_delay: máximo retardo en el aire permitido para vuelos exentos (minutos)
     N = length(vuelos_opt); % Number of flights to assign
     tiempo_slots = slots(:, 1);
@@ -42,7 +42,9 @@ function [x, coste_minimo] = solve_GHP(vuelos_opt, slots, ARCID, ETA_hours, Exem
                 ub(counter) = 0;
                 c(counter)  = 0;
             elseif is_exempt && delay > max_air_delay
-                % Vuelo exento con air delay excesivo: prohibido por infeasible
+                ub(counter) = 0;
+                c(counter)  = 0;
+            elseif ~is_exempt && delay > max_ground_delay
                 ub(counter) = 0;
                 c(counter)  = 0;
             else

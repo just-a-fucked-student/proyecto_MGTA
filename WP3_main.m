@@ -24,10 +24,10 @@ vuelos_opt = [Controlled; Exempt];
 % Máximo air delay permitido para vuelos exentos
 max_air_delay = 45; % minutos
 
-max_ground_delay = 300;
+max_ground_delay = 360; % minutes - avoids unrealistic ground holds (>6h)
 
 % Task 1: coste unitario (rf=1 para todos) - validación con el GDP
-[x, coste_minimo] = solve_GHP(vuelos_opt, slots, ARCID, ETA_hours, Exempt, max_air_delay);
+[x, coste_minimo] = solve_GHP(vuelos_opt, slots, ARCID, ETA_hours, Exempt, max_air_delay, max_ground_delay);
 
 % Task 2: minimizar emisiones CO2 del retardo
 [x_em, coste_emisiones] = solve_ghp_emissions(vuelos_opt, slots, ARCID, ETA_hours, llegadas, Exempt, max_air_delay, max_ground_delay);
