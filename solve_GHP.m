@@ -55,3 +55,4 @@ function [x, coste_minimo] = solve_GHP(vuelos_opt, slots, ARCID, ETA_hours, Exem
 
     intx = 1:dec_var;
     [x, coste_minimo] = intlinprog(c, intx, Aineq1, bineq1, Aeq1, beq1, lb, ub);
+    

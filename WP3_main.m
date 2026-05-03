@@ -24,15 +24,17 @@ vuelos_opt = [Controlled; Exempt];
 % Máximo air delay permitido para vuelos exentos
 max_air_delay = 45; % minutos
 
+max_ground_delay = 300;
+
 % Task 1: coste unitario (rf=1 para todos) - validación con el GDP
 [x, coste_minimo] = solve_GHP(vuelos_opt, slots, ARCID, ETA_hours, Exempt, max_air_delay);
 
 % Task 2: minimizar emisiones CO2 del retardo
-[x_em, coste_emisiones] = solve_ghp_emissions(vuelos_opt, slots, ARCID, ETA_hours, llegadas, Exempt, max_air_delay);
+[x_em, coste_emisiones] = solve_ghp_emissions(vuelos_opt, slots, ARCID, ETA_hours, llegadas, Exempt, max_air_delay, max_ground_delay);
 
 %Task 3: minimizar costes del delay
 Excel = readtable('LEBL_10AUG2025.xlsx');
-[x_costs, coste_delay] = solve_GHP_costs(vuelos_opt, slots, Excel , Exempt, max_air_delay);
+[x_costs, coste_delay] = solve_GHP_costs(vuelos_opt, slots, Excel , Exempt, max_air_delay, max_ground_delay);
 
 % Resultados globales
 fprintf('The total minimum delay found is: %.2f mins\n', coste_minimo);

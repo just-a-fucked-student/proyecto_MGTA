@@ -195,3 +195,4 @@ compute_kpis(AirDelay, GroundDelay, num_total_flights, total_CO2_air_delay);
 
 %% Compute the heatmaps and the varying parameters. 
 compute_heatmaps(ARCID, ETA_hours, ETD_hours, Distances, Column_ECAC, Hstart, HNoReg, slots, llegadas);
+

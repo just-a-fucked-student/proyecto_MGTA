@@ -1,4 +1,4 @@
-function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, max_air_delay)
+function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, max_air_delay, max_ground_delay)
   
     ARCID = tabla.ARCID;
     ETA_hours = tabla.ETA;
@@ -46,16 +46,19 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
 
     end
 
-    %% Basic reactionary multipliers by delay magnitude(Table 19 Tanner and Cook)
-    cook_delay_min  = [0, 5, 15, 30, 60, 90, 120, 180, 240, 300];
-    cook_react_mult = [1.0, 1.52, 1.70, 1.97, 2.51, 3.05, 3.60, 4.68, 5.77, 6.85];
-    
     %% Valores promedio B738 y A320
     cook_delay = [5, 15, 30, 60, 90, 120, 180, 240, 300];
-    % AT-GATE / BASE / primary tactical costs (Table 22 Tanner and Cook)
+
+    %% AT-GATE / BASE / full tactical costs (Table 26 Tanner and Cook)
+    cook_full_ground = [70, 425, 1535, 7000, 19205, 36275, 48735, 66750, 86215];
+    
+    %% EN-ROUTE / BASE / full tactical costs (Table 28 Tanner and Cook)
+    cook_full_airborne = [205, 830, 2355, 8650, 21670, 39565, 53665, 71825, 94430];
+
+    %% AT-GATE / BASE / primary tactical costs (Table 22 Tanner and Cook)
     cook_cost_ground = [95, 470, 1400, 4750, 9400, 15070, 29480, 47795, 69790];
 
-    % EN-ROUTE / BASE / primary tactical costs (Table 24 Tanner and Cook)
+    %% EN-ROUTE / BASE / primary tactical costs (Table 24 Tanner and Cook)
     cook_cost_airborne = [270, 995, 2490, 6865, 12565, 19310, 35840, 56275, 80390];
     
     %% Cost Vector
@@ -92,35 +95,39 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
             elseif is_exempt && delay > max_air_delay
                 ub(counter) = 0;
                 c(counter)  = 1e6;
+            
+            elseif ~is_exempt && delay > max_ground_delay
+                ub(counter) = 0;
+                c(counter)  = 1e6;
 
             %If there is no delay there is no cost    
             elseif delay == 0
                 c(counter) = 0;
             else
                 delay_clamped = max(5, min(delay,300));
+
+                missed_rotation = has_rotation && (delay > turnaround);
+
                 if is_exempt %Airbone delay
-                    op_cost = interp1(cook_delay, cook_cost_airborne, delay_clamped, 'pchip');
+                    if missed_rotation
+                        op_cost = interp1(cook_delay, cook_full_airborne, delay_clamped, 'pchip');
+                    else 
+                        op_cost = interp1(cook_delay, cook_cost_airborne, delay_clamped, 'pchip');
+                    end
                 else 
-                    op_cost = interp1(cook_delay, cook_cost_ground, delay_clamped, 'pchip');
+                    if missed_rotation
+                        op_cost = interp1(cook_delay, cook_full_ground, delay_clamped, 'pchip');
+                    else 
+                        op_cost = interp1(cook_delay, cook_cost_ground, delay_clamped, 'pchip');
+                    end
                 end
                 % We take as reference a standard flight with 128 pax
                 % (narrowbody with LF of 0.85)
                 pax_ref = 128;
                 factor = pax / pax_ref;
                 op_cost = op_cost * factor;
-
-                %reactionary multiplier
-                react_mult = 1.0;
-                if has_rotation && delay > turnaround %more delay tham turnaround: reactionary
-                    react_mult = interp1(cook_delay_min, cook_react_mult, delay_clamped, 'pchip', 'extrap');
-                    react_mult = max(1.0, react_mult);
-                elseif has_rotation && delay > 0 %Delay inside the turnaround, partial propagation
-                    %We take 1.97 as point since is the first point where
-                    %propagation grows exponentially.
-                    frac = min(delay/turnaround, 1.0); %proportion of the time of the turnaround that the delay takes
-                    react_mult = 1.0 + frac * (1.97 - 1.0);
-                end
-                c(counter) = op_cost*react_mult;  
+                
+                c(counter) = op_cost;  
             end
             counter = counter + 1;
         end
@@ -134,7 +141,7 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
         for i = 1:N
             for j = 1:M
                 idx_x = (i-1)*M + j;
-                if x(idx_x) <= length(x) && x(idx_x) > 0.5
+                if idx_x <= length(x) && x(idx_x) > 0.5
                     ETA_min  = ETA_opt(i) * 1440;
                     slot_min = tiempo_slots(j);
                     delay_ij = max(0, slot_min - ETA_min);
