@@ -151,6 +151,3 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
         end
 fprintf('\nDelay total GHP costs: %.1f min\n', delay_total);
 end
-    
-
-    

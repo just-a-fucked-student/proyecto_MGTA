@@ -76,3 +76,5 @@ fprintf('%-20s | %-15.2f | %-15.2f\n', 'Total Delay (min)',  total_delay_GDP, to
 fprintf('%-20s | %-15.2f | %-15.2f\n', 'CO2 Emissions (kg)', total_CO2_GDP,   total_CO2_GHP);
 fprintf('%-20s | %-15.2f | %-15.2f\n', 'CO2 saved vs GDP',   0, total_CO2_GDP - total_CO2_GHP);
 fprintf('====================================================\n');
+
+    
