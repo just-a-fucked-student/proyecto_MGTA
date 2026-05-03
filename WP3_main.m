@@ -39,9 +39,17 @@ fprintf('The total minimum delay found is: %.2f mins\n', coste_minimo);
 fprintf('The total minimum CO2 cost found is: %.2f kg CO2\n', coste_emisiones);
 fprintf('Minimum delay cost found is: %.2f €\n', coste_delay);
 
-% Task 4: KPIs detallados
-compute_kpis_GHP(x,    vuelos_opt, slots, ARCID, ETA_hours, llegadas, Exempt, 'Task1 - Unitary Cost', GroundDelay, AirDelay);
-compute_kpis_GHP(x_em, vuelos_opt, slots, ARCID, ETA_hours, llegadas, Exempt, 'Task2 - Emissions',    GroundDelay, AirDelay);
+% Task 4: KPIs detallados (se comprueba que el solver encontró solución antes de calcular)
+if ~isempty(x)
+    compute_kpis_GHP(x,    vuelos_opt, slots, ARCID, ETA_hours, llegadas, Exempt, 'Task1 - Unitary Cost', GroundDelay, AirDelay);
+else
+    fprintf('WARNING: Task1 solver returned no feasible solution.\n');
+end
+if ~isempty(x_em)
+    compute_kpis_GHP(x_em, vuelos_opt, slots, ARCID, ETA_hours, llegadas, Exempt, 'Task2 - Emissions',    GroundDelay, AirDelay);
+else
+    fprintf('WARNING: Task2 solver returned no feasible solution.\n');
+end
 
 %% Task 5: Comparación GDP vs GHP
 fprintf("\n========== TASK 5: GDP vs GHP (same rf) ==========\n");

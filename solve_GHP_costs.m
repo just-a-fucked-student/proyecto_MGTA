@@ -11,6 +11,8 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
     M = length(tiempo_slots); % Number of slots available
     dec_var = N * M; % Number of decision variables
     
+    max_ground_delay = 360; % minutes
+
     fprintf('Starting GHP: Minimum Delay Cost\n');
 
     %% Equality constraint: each flight assigned to exactly one slot
@@ -46,10 +48,6 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
 
     end
 
-    %% Basic reactionary multipliers by delay magnitude(Table 19 Tanner and Cook)
-    cook_delay_min  = [0, 5, 15, 30, 60, 90, 120, 180, 240, 300];
-    cook_react_mult = [1.0, 1.52, 1.70, 1.97, 2.51, 3.05, 3.60, 4.68, 5.77, 6.85];
-    
     %% Valores promedio B738 y A320
     cook_delay = [5, 15, 30, 60, 90, 120, 180, 240, 300];
     % AT-GATE / BASE / primary tactical costs (Table 22 Tanner and Cook)
@@ -93,6 +91,11 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
                 ub(counter) = 0;
                 c(counter)  = 1e6;
 
+            % Non-exempt flights max ground delay
+            elseif ~is_exempt && delay > max_ground_delay
+                ub(counter) = 0;
+                c(counter)  = 1e6;
+
             %If there is no delay there is no cost    
             elseif delay == 0
                 c(counter) = 0;
@@ -109,18 +112,15 @@ function [x, coste_minimo] = solve_GHP_costs(vuelos_opt, slots, tabla, Exempt, m
                 factor = pax / pax_ref;
                 op_cost = op_cost * factor;
 
-                %reactionary multiplier
-                react_mult = 1.0;
-                if has_rotation && delay > turnaround %more delay tham turnaround: reactionary
-                    react_mult = interp1(cook_delay_min, cook_react_mult, delay_clamped, 'pchip', 'extrap');
-                    react_mult = max(1.0, react_mult);
-                elseif has_rotation && delay > 0 %Delay inside the turnaround, partial propagation
-                    %We take 1.97 as point since is the first point where
-                    %propagation grows exponentially.
-                    frac = min(delay/turnaround, 1.0); %proportion of the time of the turnaround that the delay takes
-                    react_mult = 1.0 + frac * (1.97 - 1.0);
+                % Turnaround penalty: binary factor to prioritize flights that miss
+                % their next rotation (delay > turnaround time).
+                % Cook & Tanner primary costs (Tables 22/24) already embed partial
+                % reactionary effects; we add a discrete penalty for missed rotations.
+                turnaround_penalty = 1.0;
+                if has_rotation && delay > turnaround
+                    turnaround_penalty = 1.5; % 50% surcharge for missed rotation
                 end
-                c(counter) = op_cost*react_mult;  
+                c(counter) = op_cost * turnaround_penalty;
             end
             counter = counter + 1;
         end

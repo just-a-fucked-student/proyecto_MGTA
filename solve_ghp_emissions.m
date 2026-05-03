@@ -1,5 +1,8 @@
 function [x, coste_minimo] = solve_ghp_emissions(vuelos_opt, slots, ARCID, ETA_hours, llegadas, Exempt, max_air_delay)
-    % max_air_delay: máximo retardo en el aire permitido para vuelos exentos (minutos)
+    % max_air_delay:    máximo retardo en el aire permitido para vuelos exentos (minutos)
+    % max_ground_delay: máximo retardo en tierra permitido para vuelos controlados (minutos)
+    % Justificación: delays en tierra >3h generan reactionary delays significativos (slide 7 PDF)
+    max_ground_delay = 360;
 
     %% Pre-calcular las emisiones de cada vuelo (kg CO2 por minuto de retardo)
     N = length(vuelos_opt); % Número de vuelos a asignar
@@ -103,6 +106,9 @@ function [x, coste_minimo] = solve_ghp_emissions(vuelos_opt, slots, ARCID, ETA_h
                 c(counter)  = 0;
             elseif is_exempt && delay > max_air_delay
                 ub(counter) = 0;        % Air delay excesivo para vuelo exento: prohibido
+                c(counter)  = 0;
+            elseif ~is_exempt && delay > max_ground_delay
+                ub(counter) = 0;        % Ground delay excesivo para vuelo controlado: prohibido
                 c(counter)  = 0;
             else
                 ub(counter) = 1;
