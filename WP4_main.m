@@ -253,11 +253,7 @@ legend([p1, p4, p2, p5, p3, p6], ...
     'Location', 'northoutside', 'FontSize', 9, 'NumColumns', 3);
 
 
-
-
-
 %% --- CÀLCUL DE LA NOVA HNoReg (ESCENARI INTERMODAL) ---
-% Apliquem directament la teva funció de WP2 als vols filtrats (sense trens)
 [new_HNoReg_val, ~] = calcular_regulacion(horas_vuelos, Hstart, Hend, PAAR, AAR);
 
 new_H = floor(new_HNoReg_val);
@@ -267,3 +263,72 @@ fprintf('--- RESULTATS DE CONGESTIÓ (NOVA HNoReg) ---\n');
 fprintf('Antiga HNoReg (Original): %.2fh\n', HNoReg);
 fprintf('Nova HNoReg (Amb trens):  %02d:%02d (%.2fh)\n', new_H, new_M, new_HNoReg_val);
 fprintf('Temps de congestió estalviat: %.2f hores\n\n', HNoReg - new_HNoReg_val);
+
+%% --- GHP INTERMODALITY ---
+fprintf("\n\n------------------------------------\n");
+fprintf("--- WP4: GHP WITH INTERMODALITY ---\n");
+
+% 1. Preparar les dades de la taula filtrada 'llegadas'
+ARCID_inter     = string(llegadas.ARCID);
+ETA_hours_inter = llegadas.ETA * 24;
+ETD_hours_inter = llegadas.ETD * 24;
+Distances_inter = llegadas.Flight_Distance_km_;
+ECAC_inter      = llegadas.ECAC;
+
+% 2. Recalcular els paràmetres del GDP per la demanda reduïda
+[new_HNoReg_val, ~] = calcular_regulacion(ETA_hours_inter, Hstart, Hend, PAAR, AAR);
+slots_inter = compute_slots(Hstart, Hend, new_HNoReg_val, PAAR, AAR);
+
+% 3. Tornar a classificar els vols amb la nova HNoReg
+[~, ~, ~, ~, Exempt_inter, Controlled_inter] = compute_list(ARCID_inter, ETA_hours_inter, ...
+    ETD_hours_inter, Distances_inter, ECAC_inter, Hfile, Hstart, new_HNoReg_val, radius);
+
+% 4. Assingar slots GDP
+[~, GroundDelay_inter, AirDelay_inter] = assign_slots(slots_inter, Controlled_inter, Exempt_inter, ...
+    ETA_hours_inter, ETD_hours_inter, ARCID_inter);
+
+% 5. Preparar els vols per a l'optimització GHP
+vuelos_opt_inter = [Controlled_inter; Exempt_inter];
+max_air_delay = 45; % minuts
+max_ground_delay = 360; % minuts
+
+% --- Task 1: Cost unitari (Minimitzar retard) ---
+[x_inter, coste_minimo_inter] = solve_GHP(vuelos_opt_inter, slots_inter, ARCID_inter, ETA_hours_inter, Exempt_inter, max_air_delay, max_ground_delay);
+
+% --- Task 2: Minimitzar emissions CO2 ---
+[x_em_inter, coste_emisiones_inter] = solve_ghp_emissions(vuelos_opt_inter, slots_inter, ARCID_inter, ETA_hours_inter, llegadas, Exempt_inter, max_air_delay, max_ground_delay);
+
+% --- Task 3: Minimitzar costos del retard ---
+% Utilitzem llegadas_original per si la funció busca informació del model d'avió allà
+[x_costs_inter, coste_delay_inter] = solve_GHP_costs(vuelos_opt_inter, slots_inter, llegadas_original, Exempt_inter, max_air_delay, max_ground_delay);
+
+% --- Resultats globals Intermodalitat ---
+fprintf('INTERMODAL - Total minimum delay found: %.2f mins\n', coste_minimo_inter);
+fprintf('INTERMODAL - Total minimum CO2 cost found: %.2f kg CO2\n', coste_emisiones_inter);
+fprintf('INTERMODAL - Minimum delay cost found: %.2f €\n', coste_delay_inter);
+
+% --- Task 4: KPIs detallats ---
+compute_kpis_GHP(x_inter, vuelos_opt_inter, slots_inter, ARCID_inter, ETA_hours_inter, llegadas, Exempt_inter, 'Intermodality Task1 - Unitary', GroundDelay_inter, AirDelay_inter);
+compute_kpis_GHP(x_em_inter, vuelos_opt_inter, slots_inter, ARCID_inter, ETA_hours_inter, llegadas, Exempt_inter, 'Intermodality Task2 - Emissions', GroundDelay_inter, AirDelay_inter);
+
+%% --- Task 5: Comparació GDP vs GHP (Escenari Intermodal) ---
+fprintf("\n========== INTERMODALITY: GDP vs GHP ==========\n");
+
+% Retards i emissions GDP intermodal
+ground_delays_GDP_inter = cell2mat(GroundDelay_inter(:, 2));
+total_CO2_ground_GDP_inter = sum(ground_delays_GDP_inter) * 2.5;
+[~, total_CO2_air_GDP_inter] = compute_air_emissions(AirDelay_inter, llegadas, ARCID_inter);
+total_CO2_GDP_inter = total_CO2_air_GDP_inter + total_CO2_ground_GDP_inter;
+total_delay_GDP_inter = sum(ground_delays_GDP_inter) + sum(cell2mat(AirDelay_inter(:, 2)));
+
+% Resultats GHP intermodal
+total_delay_GHP_inter = coste_minimo_inter;
+total_CO2_GHP_inter   = coste_emisiones_inter;
+
+% Imprimir taula
+fprintf('%-20s | %-15s | %-15s\n', 'Metric', 'GDP (Intermodal)', 'GHP (Intermodal)');
+fprintf('------------------------------------------------------------\n');
+fprintf('%-20s | %-15.2f | %-15.2f\n', 'Total Delay (min)',  total_delay_GDP_inter, total_delay_GHP_inter);
+fprintf('%-20s | %-15.2f | %-15.2f\n', 'CO2 Emissions (kg)', total_CO2_GDP_inter,   total_CO2_GHP_inter);
+fprintf('%-20s | %-15.2f | %-15.2f\n', 'CO2 saved vs GDP',   0, total_CO2_GDP_inter - total_CO2_GHP_inter);
+fprintf('====================================================\n');
