@@ -69,7 +69,7 @@ function compute_kpis(AirDelay, GroundDelay, num_total_flights, total_CO2_air)
     porcentaje_otp_120 = (otp_number2 / num_total_flights) * 100;
 
     % 7. CO2 ground emission
-    co2_ground_per_min = 2 * 3.16; 
+    co2_ground_per_min = 2 * 3.16;
     total_CO2_ground = total_ground * co2_ground_per_min;
     total_co2 = total_CO2_air + total_CO2_ground;
 

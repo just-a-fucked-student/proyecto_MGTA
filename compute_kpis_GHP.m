@@ -52,7 +52,6 @@ function compute_kpis_GHP(x, vuelos_opt, slots, ARCID, ETA_hours, llegadas, Exem
     [~, total_CO2_air_GHP] = compute_air_emissions(AirDelay_GHP, llegadas, ARCID);
     compute_kpis(AirDelay_GHP, GroundDelay_GHP, num_total_flights, total_CO2_air_GHP);
 
-    %% KPIs por aerolínea: delay medio y RSD para las top 4
     fprintf('\n--- Airline-level KPIs (Top 4) ---\n');
 
     % Delay total por vuelo sumando air y ground

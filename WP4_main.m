@@ -287,6 +287,11 @@ slots_inter = compute_slots(Hstart, Hend, new_HNoReg_val, PAAR, AAR);
 [~, GroundDelay_inter, AirDelay_inter] = assign_slots(slots_inter, Controlled_inter, Exempt_inter, ...
     ETA_hours_inter, ETD_hours_inter, ARCID_inter);
 
+% 4.5. Compute KPIs for Intermodal GDP
+fprintf('\n========== Intermodal GDP KPIs ==========\n');
+[~, total_CO2_air_inter] = compute_air_emissions(AirDelay_inter, llegadas, ARCID_inter);
+compute_kpis(AirDelay_inter, GroundDelay_inter, height(llegadas), total_CO2_air_inter);
+
 % 5. Preparar els vols per a l'optimització GHP
 vuelos_opt_inter = [Controlled_inter; Exempt_inter];
 max_air_delay = 45; % minuts
